@@ -69,11 +69,21 @@ func ProcessData(data []int) []int {
 	return out
 }
 
-func ScoreData(data []int) int {
-	score := 0
-	for i := 20; i < len(data); i += 40 {
-		score += i * data[i-1]
-		fmt.Printf("%4d * %4d = %8d\n", i, data[i-1], i*data[i-1])
+func ScoreData(data []int) string {
+	score := "#"
+	cursorRadius := 1
+	for i := 1; i < len(data); i++ {
+		sprite := data[i] % 40
+		crt := i % 40
+		distance := sprite - crt
+		if crt == 0 {
+			score += "\n"
+		}
+		if (-cursorRadius <= distance) && (distance <= cursorRadius) {
+			score += "#"
+		} else {
+			score += "."
+		}
 	}
 	return score
 }
