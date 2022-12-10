@@ -23,7 +23,7 @@ func main() {
 	//
 
 	cycleNumber := ProcessData(data)
-	signal := ScoreData(cycleNumber)
+	signal := DisplaySignal(cycleNumber)
 	//
 	// report
 	//
@@ -47,14 +47,16 @@ func ParseInput(fileName string) (data []int) {
 		line := strings.Split(scanner.Text(), " ")
 		// Transform
 		if line[0] == "noop" {
+			// Single cycle, no movement
 			data = append(data, 0)
 		} else {
-			mod, err := strconv.Atoi(line[1])
+			// Assume addx, grab increment
+			incr, err := strconv.Atoi(line[1])
 			if err != nil {
 				log.Fatal(err)
 			}
 			data = append(data, 0)
-			data = append(data, mod)
+			data = append(data, incr)
 		}
 	}
 	return
@@ -62,26 +64,38 @@ func ParseInput(fileName string) (data []int) {
 
 func ProcessData(data []int) []int {
 	out := make([]int, len(data)+1)
+	// Initialize cycle number
 	out[0] = 1
 	for i, incr := range data {
+		// Apply any addx operations
 		out[i+1] = out[i] + incr
 	}
 	return out
 }
 
-func ScoreData(data []int) string {
+func DisplaySignal(data []int) string {
+	// Apply initial cycle number
 	score := "#"
+	// How wide is sprite (center + radius)
 	cursorRadius := 1
+	// How many pixels to display before new line
+	screenLength := 40
 	for i := 1; i < len(data); i++ {
-		sprite := data[i] % 40
-		crt := i % 40
+		// Normalize sprite signal to screen domain
+		sprite := data[i] % screenLength
+		// Normalize CRT's draw cursor to screen domain
+		crt := i % screenLength
+		// Find distance between draw cursor and sprite
 		distance := sprite - crt
 		if crt == 0 {
+			// If cursor reset, add a new line
 			score += "\n"
 		}
 		if (-cursorRadius <= distance) && (distance <= cursorRadius) {
+			// Sprite within draw cursor
 			score += "#"
 		} else {
+			// Sprite outside of draw cursor
 			score += "."
 		}
 	}
