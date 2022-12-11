@@ -10,42 +10,73 @@ import (
 	"strings"
 )
 
-func MonkeyOp(m *Monkey, i int) {
-	if (*m).operand < 0 {
-		switch (*m).operation {
-		case '*':
-			(*m).items[i] *= (*m).items[i]
-		case '+':
-			(*m).items[i] += (*m).items[i]
-		default:
-			log.Fatal(fmt.Errorf("MakeOperation: Unknown operand %c", (*m).operand))
-		}
-	} else {
-		switch (*m).operation {
-		case '+':
-			(*m).items[i] += (*m).operand
-		case '*':
-			(*m).items[i] *= (*m).operand
-		default:
-			log.Fatal(fmt.Errorf("MakeOperation: Unknown operand %c", (*m).operand))
-		}
-	}
-
-}
-
-// type MonkeyTest func(m *Monkey, i int) bool
-
-func MonkeyTest(m *Monkey, i int) bool {
-	return ((*m).items[i] % (*m).test) == 0
-}
+type MonkeyOperation func(m *Monkey, i int)
 
 type Monkey struct {
 	items       []int
-	operation   rune
-	operand     int
+	operation   MonkeyOperation
 	test        int
 	dest        [2]int
 	inspections int
+}
+
+func (m Monkey) Test(i int) int {
+	if (m.items[i] % m.test) == 0 {
+		return m.dest[0]
+	} else {
+		return m.dest[1]
+	}
+}
+
+func (m *Monkey) Operate(i int) {
+	m.operation(m, i)
+}
+
+func (m *Monkey) CreateOperation(s string) {
+	reOp := regexp.MustCompile(`new = old ([\+\-\/\*]) (\d+|old)`)
+	match := reOp.FindStringSubmatch(s)
+	if match[2] == "old" {
+		switch match[1] {
+		case "*":
+			m.operation = func(m *Monkey, i int) {
+				m.items[i] *= m.items[i]
+			}
+		case "+":
+			m.operation = func(m *Monkey, i int) {
+				m.items[i] += m.items[i]
+			}
+		default:
+			log.Fatal(fmt.Errorf("MakeOperation: Unknown operand %s", match[1]))
+		}
+	} else {
+		incrementor, err := strconv.Atoi(match[2])
+		if err != nil {
+			log.Fatal(err)
+		}
+		/*
+			Use 'create' factory to create function pointer with "enclosed"
+			incrementor value
+		*/
+		switch match[1] {
+		case "*":
+			create := func(incrementor int) MonkeyOperation {
+				return func(m *Monkey, i int) {
+					m.items[i] *= incrementor
+				}
+			}
+			m.operation = create(incrementor)
+		case "+":
+			create := func(incrementor int) MonkeyOperation {
+				return func(m *Monkey, i int) {
+					m.items[i] += incrementor
+				}
+			}
+			m.operation = create(incrementor)
+		default:
+			log.Fatal(fmt.Errorf("MakeOperation: Unknown operand %s", match[1]))
+		}
+	}
+
 }
 
 func main() {
@@ -103,18 +134,13 @@ func ParseInput(fileName string) (data []Monkey) {
 		// Operation: new = old ? ##
 		scanner.Scan()
 		line = scanner.Text()
-		MakeOperation(&newMonkey, line)
+		newMonkey.CreateOperation(line)
 		// Test: divisible by ##
 		scanner.Scan()
 		num, err := strconv.Atoi(reNum.FindString(scanner.Text()))
 		if err != nil {
 			log.Fatal(err)
 		}
-		/*
-			newMonkey.test = func(m *Monkey, i int) bool {
-					return ((*m).items[i] % num) == 0
-				}
-		*/
 		newMonkey.test = num
 		// If true:
 		scanner.Scan()
@@ -136,21 +162,6 @@ func ParseInput(fileName string) (data []Monkey) {
 		scanner.Scan()
 	}
 	return
-}
-
-func MakeOperation(m *Monkey, s string) {
-	reOp := regexp.MustCompile(`new = old ([\+\-\/\*]) (\d+|old)`)
-	match := reOp.FindStringSubmatch(s)
-	(*m).operation = rune(match[1][0])
-	var err error
-	if match[2] == "old" {
-		(*m).operand = -1
-	} else {
-		(*m).operand, err = strconv.Atoi(match[2])
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
 }
 
 func Simulate(monkeys []Monkey, rounds int) {
@@ -176,20 +187,15 @@ func Simulate(monkeys []Monkey, rounds int) {
 func UpdateMonkey(monkeys []Monkey, j int) {
 	m := &monkeys[j]
 	reps := len((*m).items)
+	// All operations on item 0, NOT i, because throw items when done
 	for i := 0; i < reps; i++ {
 		// Inspect
-		(*m).inspections += 1
-		MonkeyOp(m, 0)
+		m.inspections += 1
+		m.Operate(0)
 		// Bored
 		// (*m).items[0] /= 3
 		// Test
-		var dest int
-		if MonkeyTest(m, 0) {
-			// Send to if true: dest[0]
-			dest = (*m).dest[0]
-		} else {
-			dest = (*m).dest[1]
-		}
+		dest := m.Test(0)
 		// Throw to dest
 		value := (*m).items[0]
 		(*m).items = remove((*m).items, 0)
