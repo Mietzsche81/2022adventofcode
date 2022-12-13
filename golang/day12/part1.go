@@ -46,7 +46,7 @@ func (b *Board) FindNeighbor(i int, j int) {
 			continue
 		}
 		here, there := b.square[i][j].value, b.square[x][y].value
-		if (there-here == 0) || (there-here == 1) {
+		if (there - here) <= 1 {
 			b.square[i][j].neighbor = append(
 				b.square[i][j].neighbor,
 				&(b.square[x][y]),
@@ -64,7 +64,7 @@ func (b *Board) Print(fileName string) {
 
 	for i := 0; i < b.m; i++ {
 		for j := 0; j < b.n; j++ {
-			fout.WriteString(fmt.Sprintf("%d ", b.square[i][j].visit_index))
+			fout.WriteString(fmt.Sprintf("%4d ", b.square[i][j].visit_index))
 		}
 		fout.WriteString("\n")
 	}
@@ -129,10 +129,9 @@ func main() {
 	//
 	// report
 	//
+	board.Print("result.csv")
 	fmt.Printf("Started at [%d %d] seeking [%d %d]\n", x0.i, x0.j, xf.i, xf.j)
-	fmt.Println(board.square[24][84].visited)
-	fmt.Println(xf.visited)
-	fmt.Println(path.distance)
+	fmt.Printf("Takes %d steps to reach.\n", path.distance)
 
 }
 
@@ -205,19 +204,15 @@ func FindShortestPathBFS(b *Board, x0 *Square, xf *Square) *Node {
 		}
 		// Check each candidate location for destinations
 		for i := range here {
-			fmt.Printf("\t[%d %d] %t\n", here[i].location.i, here[i].location.j, here[i].location.visited)
 			add := here[i].Advance()
 			there = append(there, add...)
-			for j := range add {
-				fmt.Printf("\t\t[%d %d] %t\n", add[j].location.i, add[j].location.j, add[j].location.visited)
-			}
 		}
 		// Deduplicate
 		there = RemoveDuplicates(there)
-		// stdin := bufio.NewScanner(os.Stdin)
-		// stdin.Scan()
 		// Report
-		fmt.Printf("Iteration %d: %5d candidate nodes found %5d children\n", distance, len(here), len(there))
+		if distance%10 == 0 {
+			fmt.Printf("Iteration %d: %5d candidate nodes found %5d children\n", distance, len(here), len(there))
+		}
 		// Check if any have finished
 		for i := range there {
 			if there[i].IsAt(xf) {
@@ -225,12 +220,6 @@ func FindShortestPathBFS(b *Board, x0 *Square, xf *Square) *Node {
 				break
 			}
 		}
-		if distance > 203 {
-			return nil
-		}
-
-		// Print Board to file
-		b.Print(fmt.Sprintf("tmp.gen%d.csv", distance))
 	}
 
 	// Reverse link the path for children
