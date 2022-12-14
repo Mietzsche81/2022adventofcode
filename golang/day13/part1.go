@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -9,14 +10,12 @@ import (
 )
 
 type Packet struct {
-	left  []Entry
-	right []Entry
+	left  []any
+	right []any
 }
 
-type Entry struct {
-	format any
-	raw    []int
-	nest   []Entry
+func (p *Packet) Compare() bool {
+
 }
 
 func main() {
@@ -32,12 +31,12 @@ func main() {
 	// process
 	//
 
-	out := ProcessData(data)
+	// out := ProcessData(data)
 	//
 	// report
 	//
 
-	fmt.Println(out)
+	fmt.Println(data)
 }
 
 func ParseInput(fileName string) (data []Packet) {
@@ -50,14 +49,23 @@ func ParseInput(fileName string) (data []Packet) {
 
 	// Scan to read line by line
 	scanner := bufio.NewScanner(fin)
-	data = make([]string, 0)
-	for scanner.Scan() {
+
+	data = make([]Packet, 0)
+	for i := 0; scanner.Scan(); i++ {
 		// Extract
-		line := scanner.Text()
+		line := strings.TrimSpace(scanner.Text())
+		if len(line) == 0 {
+			// Decrement counter and skip this line
+			i--
+			continue
+		}
 		// Transform
-		line = strings.TrimSpace(line)
-		// Load
-		data = append(data, line)
+		if i%2 == 0 {
+			data = append(data, Packet{})
+			json.Unmarshal([]byte(line), &(data[i/2].left))
+		} else {
+			json.Unmarshal([]byte(line), &(data[i/2].right))
+		}
 	}
 	return
 }
