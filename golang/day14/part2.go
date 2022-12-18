@@ -57,11 +57,12 @@ func Normalize(in [2]int) (out [2]int) {
 
 func CreateBoard(forms [][][2]int) Board {
 	// Find the bounds of the board, and add a margin around it.
+	// TODO: more robust boundary conditions in case formations push sand to x < 0
 	min, max := MinMax(forms)
-	min[0] = 0
 	min[1] = 0
-	max[0] = 1500
 	max[1] += 3
+	min[0] = 0
+	max[0] = 1000
 	// Create empty board
 	b := Board{
 		bounds: [2][2]int{min, max},
@@ -100,16 +101,29 @@ func CreateBoard(forms [][][2]int) Board {
 			b.square[i][j].value = '#'
 		}
 	}
+	// Initialize floor
+	for i := 0; i < b.bounds[1][0]; i++ {
+		b.square[i][*b.depth-1].value = '#'
+	}
 
 	return b
 }
 
-func (b *Board) Print() {
+func (b *Board) Print(fileName string) {
+	fout := os.Stdout
+	if len(strings.TrimSpace(fileName)) > 0 {
+		var err error
+		fout, err = os.Create(fileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer fout.Close()
+	}
 	for j := b.bounds[0][1]; j < b.bounds[1][1]; j++ {
 		for i := b.bounds[0][0]; i < b.bounds[1][0]; i++ {
-			fmt.Printf("%c", b.square[i][j].value)
+			fout.WriteString(fmt.Sprintf("%c", b.square[i][j].value))
 		}
-		fmt.Printf("\n")
+		fout.WriteString(fmt.Sprintf("\n"))
 	}
 }
 
@@ -171,22 +185,21 @@ func main() {
 
 	fileName := strings.TrimSpace(os.Args[1])
 	formations := ParseInput(fileName)
-	fmt.Println(formations)
 
 	//
 	// process
 	//
 	board := CreateBoard(formations)
-	for i := 0; i < 100; i++ {
-		board.CreateDrop()
-	}
-	// board.Simulate()
+	// for i := 0; i < 100; i++ {
+	// 	board.CreateDrop()
+	// }
+	board.Simulate()
 
 	//
 	// report
 	//
 
-	board.Print()
+	board.Print("output/final.csv")
 	fmt.Println(board.count)
 }
 
