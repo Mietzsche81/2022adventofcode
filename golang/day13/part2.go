@@ -10,27 +10,48 @@ import (
 	"strings"
 )
 
-type Packet struct {
-	left    []any
-	right   []any
-	correct bool
-}
-
 var EntryType = reflect.TypeOf(0.0)
 var ListType = reflect.TypeOf([]any{})
 
-func (p *Packet) Compare() bool {
-	// Set a default value to true, break on contradiction
-	p.correct = true
-	p.subcompare(p.left, p.right)
+type Packet []any
 
-	return p.correct
+func Quicksort(data []Packet, lo int, hi int) {
+
 }
 
-func (p *Packet) subcompare(left any, right any) (ret int) {
+func Partition(data []Packet, lo int, hi int) int {
+	// Default pivot: highest point
+	pivotValue := data[hi]
+
+	// Swap partitioned elements about the pivot
+	i := lo - 1
+	for j := lo; j < hi; j++ {
+		if !data[j].GreaterThan(pivotValue) {
+			i++
+			tmp := &data[i]
+			// TODO
+		}
+	}
+
+	return i
+}
+
+func (left Packet) GreaterThan(right Packet) bool {
+	// Set a default value to true, break on contradiction
+	direction := 0
+	PacketCompare(left, right, &direction)
+
+	if direction == 1 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func PacketCompare(left any, right any, carry *int) {
 	// Do not iterate deeper if contradiction found
-	if !p.correct {
-		return 1
+	if *carry == 1 {
+		return
 	}
 
 	// Get types
@@ -40,46 +61,40 @@ func (p *Packet) subcompare(left any, right any) (ret int) {
 	fmt.Printf("%15T %v\n\n", right, right)
 
 	if leftType == EntryType && rightType == EntryType {
-		ret = intcompare(left.(float64), right.(float64))
-		if ret == 1 {
-			// left side is higher value, BAD
-			p.correct = false
-		}
+		*carry = intcompare(left.(float64), right.(float64))
 	} else if leftType == ListType && rightType == ListType {
 		for i := range left.([]any) {
 			if i >= len(right.([]any)) {
 				// Ran out of entries on right, BAD
-				p.correct = false
-				ret = 1
+				*carry = 1
 				break
 			}
-			ret = p.subcompare(left.([]any)[i], right.([]any)[i])
-			if ret == -1 {
+			PacketCompare(left.([]any)[i], right.([]any)[i], carry)
+			if *carry == -1 {
 				// Found the left side is smaller, CORRECT (can leave)
 				break
-			} else if ret == 0 {
+			} else if *carry == 0 {
 				// Tie, need to continue search
 				continue
 			} else {
 				// Found the left side is larger, BAD (can leave)
-				p.correct = false
 				break
 			}
 		}
 		// If left side ran out before right side
 		if len(left.([]any)) < len(right.([]any)) {
 			// left side ran out, GOOD
-			ret = -1
+			*carry = -1
 		}
 	} else if leftType == EntryType && rightType == ListType {
-		ret = p.subcompare([]any{left}, right)
+		PacketCompare([]any{left}, right, carry)
 	} else if leftType == ListType && rightType == EntryType {
-		ret = p.subcompare(left, []any{right})
+		PacketCompare(left, []any{right}, carry)
 	} else {
 		log.Fatal(fmt.Errorf("Unrecognized type comparisons: '%T' v '%T'", left, right))
 	}
 
-	return ret
+	return
 }
 
 func intcompare(left float64, right float64) int {
@@ -90,14 +105,6 @@ func intcompare(left float64, right float64) int {
 	} else {
 		return 1
 	}
-}
-
-func (p *Packet) intVright(left int, right any) (correct bool) {
-	switch val := right.(type) {
-	case float64:
-		correct = left <= int(val)
-	}
-	return
 }
 
 func main() {
@@ -113,6 +120,7 @@ func main() {
 	// process
 	//
 
+	// Inject
 	score := 0
 	for i, packet := range data[0:] {
 		if packet.Compare() {
@@ -130,7 +138,7 @@ func main() {
 	fmt.Println(score)
 }
 
-func ParseInput(fileName string) (data []Packet) {
+func ParseInput(fileName string) (data []PacketSorter) {
 	// Open File
 	fin, err := os.Open(fileName)
 	if err != nil {
@@ -141,7 +149,7 @@ func ParseInput(fileName string) (data []Packet) {
 	// Scan to read line by line
 	scanner := bufio.NewScanner(fin)
 
-	data = make([]Packet, 0)
+	data = make([]PacketSorter, 0)
 	for i := 0; scanner.Scan(); i++ {
 		// Extract
 		line := strings.TrimSpace(scanner.Text())
@@ -152,7 +160,7 @@ func ParseInput(fileName string) (data []Packet) {
 		}
 		// Transform
 		if i%2 == 0 {
-			data = append(data, Packet{})
+			data = append(data, PacketSorter{})
 			json.Unmarshal([]byte(line), &(data[i/2].left))
 		} else {
 			json.Unmarshal([]byte(line), &(data[i/2].right))
