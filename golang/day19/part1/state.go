@@ -2,8 +2,6 @@ package part1
 
 import (
 	"fmt"
-	"log"
-	"strings"
 )
 
 type ComponentMap map[string]int
@@ -30,7 +28,7 @@ func (s *State) Initialize() {
 	//
 }
 
-func (src *State) Copy() State {
+func (src State) Copy() State {
 	dst := State{
 		Time:      src.Time,
 		MaxTime:   src.MaxTime,
@@ -70,10 +68,7 @@ func PrintBluePrint(bp BlueprintMap) {
 	}
 }
 
-func (s *State) CanBuild(robot string) bool {
-	if len(strings.TrimSpace(robot)) == 0 {
-		return true
-	}
+func (s State) HaveResourcesToBuild(robot string) bool {
 	for resource, cost := range s.Blueprint[robot] {
 		if s.Stockpile[resource] < cost {
 			return false
@@ -82,27 +77,36 @@ func (s *State) CanBuild(robot string) bool {
 	return true
 }
 
-func (x *State) Build(robot string) State {
-	// If invalid input, fail
-	if !x.CanBuild(robot) {
-		log.Fatal(fmt.Errorf(
-			"cannot build '%s'\n have: %v\n need: %v",
-			robot, x.Stockpile, x.Blueprint[robot],
-		))
-	}
-	// Initialize Output from current state
-	y := x.Copy()
-	// Current robots produce as time advances
-	y.Produce()
-	if len(strings.TrimSpace(robot)) > 0 {
-		// Add valid robots if selected
-		y.Producers[robot]++
-		// Subtract the cost of the robot
-		for resource, cost := range y.Blueprint[robot] {
-			y.Stockpile[resource] -= cost
+func (x State) Build(robot string) *State {
+	// For each resource required to build
+	for resource, cost := range x.Blueprint[robot] {
+		// If cannot produce the required resource
+		if x.Producers[resource] == 0 && cost > 0 {
+			// Cannot build the requested, cannot advance state
+			return nil
 		}
 	}
-	return y
+
+	// Initialize Output from current state
+	y := x.Copy()
+	// If don't yet have the resources
+	for !y.HaveResourcesToBuild(robot) {
+		// if out of time, failed to produce
+		if y.Time >= y.MaxTime {
+			return &y
+		}
+		// produce and advance time
+		y.Produce()
+	}
+	// We now have the resources, must advance time before building
+	y.Produce()
+	// Now add the robot
+	y.Producers[robot]++
+	// Subtract the cost of the robot
+	for resource, cost := range y.Blueprint[robot] {
+		y.Stockpile[resource] -= cost
+	}
+	return &y
 }
 
 func (x *State) Produce() {

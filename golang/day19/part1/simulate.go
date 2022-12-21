@@ -1,18 +1,18 @@
 package part1
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"time"
 )
 
-func (x0 *State) OptimizeBFS(maxTime int) int {
+var bestAtTime = map[int]State{}
+var compressedCache = map[int]bool{}
+
+func (x0 *State) Optimize(maxTime int) int {
 	// Initialize
 	x0.MaxTime = maxTime
+	compressedCache = make(map[int]bool)
 	alive := []*State{x0}
-	// Set up best for each step
-	bestAtTime := make(map[int]State)
 	for i := 0; i <= maxTime; i++ {
 		bestAtTime[i] = x0.Copy()
 	}
@@ -26,7 +26,7 @@ func (x0 *State) OptimizeBFS(maxTime int) int {
 	}
 
 	// Optimize
-	t := 0
+	n := 0
 	for len(alive) > 0 {
 		// Advance
 		tic := time.Now()
@@ -34,82 +34,117 @@ func (x0 *State) OptimizeBFS(maxTime int) int {
 		for _, s := range alive {
 			next = append(next, s.PossibleAdvances()...)
 		}
-		// Cache best & Prune
-		Prune(next, bestAtTime)
 		// Iterate
 		alive = next
-		t++
+		n++
+		// Score the best
+		ScoreBest(alive)
 		toc := time.Since(tic).Seconds()
 		// Report
-		fmt.Printf("t = %2d :: %5d NODES, %fs elapsed\n", t, len(alive), toc)
-		input := bufio.NewScanner(os.Stdin)
-		input.Scan()
+		fmt.Printf("cycle = %2d :: %5d NODES, %fs elapsed\t", n, len(alive), toc)
+		fmt.Printf("BEST @ t=%2d:\tt\tgeodes = %2d\tgeodebots = %2d\n",
+			maxTime, bestAtTime[maxTime].Stockpile["geode"], bestAtTime[maxTime].Producers["geode"])
 	}
 
 	return bestAtTime[maxTime].Stockpile["geode"]
 }
 
 func (x *State) PossibleAdvances() (next []*State) {
+	// Step 0: initialize output
 	next = make([]*State, 0)
-	if x.Time == x.MaxTime {
+
+	// Step 1: check for pruning
+	if x.Time >= x.MaxTime {
 		// If at final time, done
+		return
+	} else if CheckCache(x) {
+		// Already searched, moot point
+		return
+	} else if Prune(x) {
+		// Suboptimal, moot
 		return
 	}
 
-	// Spend resources
-	if x.CanBuild("geode") {
-		// Priority #1: If can create geode producer, always do so
+	// Step 2: make a decision & advance
+	if x.HaveResourcesToBuild("geode") {
+		// Priority #1: If can create geode producer, always do so immediately
 		geode := x.Build("geode")
-		next = append(next, &geode)
+		next = append(next, geode)
 	} else {
-		// Otherwise explore other possibilities
-		for _, robot := range []string{"obsidian", "clay", "ore", ""} {
-			if x.CanBuild(robot) {
-				y := x.Build(robot)
-				next = append(next, &y)
+		// Priority #2: build another producer
+		for robot := range x.Blueprint {
+			y := x.Build(robot)
+			if y != nil {
+				next = append(next, y)
 			}
 		}
 	}
-
 	return
 }
 
-func Prune(next []*State, bestAtTime map[int]State) {
-	// Prune anything that is producing over the max needed
-	// NOTE: we stored the max needed in bestAtTime[0].producers
-	countPruned := 0
-	for i, s := range next {
-		for _, resource := range []string{"obsidian", "clay", "ore"} {
-			if s.Producers[resource] > bestAtTime[0].Producers[resource] {
-				next = append(next[:i], next[i+1:]...)
-				countPruned++
-			}
-		}
-	}
-
-	// Cache the best
+func ScoreBest(next []*State) {
 	for _, s := range next {
 		if s.Stockpile["geode"] > bestAtTime[s.Time].Stockpile["geode"] {
-			// If found new best, store as best
+			// If found new undisputed best, store as best
 			bestAtTime[s.Time] = s.Copy()
 		} else if s.Stockpile["geode"] == bestAtTime[s.Time].Stockpile["geode"] {
-			// Tied for best
-			for _, resource := range []string{"geode", "obsidian", "clay", "ore"} {
-				// Break tie with the most productive
-				if s.Producers[resource] > bestAtTime[s.Time].Producers[resource] {
-					bestAtTime[s.Time] = s.Copy()
-				}
+			// Break tie with the most productive (in order of degree)
+			if s.Producers["geode"] > bestAtTime[s.Time].Producers["geode"] {
+				bestAtTime[s.Time] = s.Copy()
 			}
 		}
 	}
-
-	// Prune anything that is falling behind.
-	for i, s := range next {
-		if s.Stockpile["geode"] < bestAtTime[s.Time].Stockpile["geode"] {
-			// If behind in geode production, assume will never catch up
-			next = append(next[:i], next[i+1:]...)
-			countPruned++
+	// Propagate best forward
+	for i := 1; i < bestAtTime[0].MaxTime; i++ {
+		possible := bestAtTime[i].Copy()
+		for possible.Time < possible.MaxTime {
+			possible.Produce()
+			if possible.Stockpile["geode"] > bestAtTime[possible.Time].Stockpile["geode"] {
+				bestAtTime[possible.Time] = possible.Copy()
+			}
 		}
 	}
-	fmt.Printf("\t --- Pruned %d\n", countPruned)
+}
+
+func Prune(x *State) bool {
+	// Prune anything that is producing over the max needed
+	// NOTE: we stored the max needed in bestAtTime[0].producers
+	for _, resource := range []string{"obsidian", "clay", "ore"} {
+		if x.Producers[resource] > bestAtTime[0].Producers[resource] {
+			return true
+		}
+	}
+
+	// Prune anything that is falling behind & can't catch up even after adding an additional geodebot
+	if x.Stockpile["geode"] < (bestAtTime[x.Time].Stockpile["geode"] - x.Producers["geode"] - 1) {
+		return true
+	}
+
+	return false
+}
+
+func Encode(s *State) (encoding int) {
+	// encode
+	encoding = s.Time
+	resource := []string{"geode", "obsidian", "clay", "ore"}
+	for i, j := 0, 100; i < len(resource); i, j = i+1, j*10000 {
+		encoding += j * s.Stockpile[resource[i]]
+		encoding += j * s.Producers[resource[i]] * 100
+	}
+	return
+}
+
+func CheckCache(s *State) bool {
+	encoding := Encode(s)
+	_, alreadyCached := compressedCache[encoding]
+	compressedCache[encoding] = true
+	return alreadyCached
+}
+
+func Remove(arr []*State, i int) []*State {
+	if i < len(arr)-1 {
+		return append(arr[:i], arr[i+1:]...)
+	} else {
+		return arr[:i]
+	}
 }

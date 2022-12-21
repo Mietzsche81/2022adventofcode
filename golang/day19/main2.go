@@ -27,7 +27,7 @@ func main() {
 	// process
 	//
 	bpScore := []int{}
-	for _, bp := range data {
+	for _, bp := range data[:3] {
 		s := part1.State{}
 		s.Initialize()
 		s.Blueprint = bp
@@ -38,9 +38,9 @@ func main() {
 	//
 	// report
 	//
-	totalScore := 0
+	totalScore := 1
 	for i, score := range bpScore {
-		totalScore += (i + 1) * score
+		totalScore *= score
 		fmt.Println(i, score)
 	}
 	fmt.Println(totalScore)
