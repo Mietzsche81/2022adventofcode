@@ -17,7 +17,6 @@ func main() {
 
 	fileName := strings.TrimSpace(os.Args[1])
 	data := part1.ParseInput(fileName)
-	fmt.Println(data[:10])
 
 	//
 	// process
@@ -37,9 +36,8 @@ func main() {
 	score := 0
 	for _, i := range []int{1000, 2000, 3000} {
 		index := (zero + i) % len(out)
-		fmt.Println(zero, zero+i, len(out), index, out[index])
+		fmt.Println(zero, zero+i, index, out[index])
 		score += out[index]
 	}
 	fmt.Println(score)
-
 }
