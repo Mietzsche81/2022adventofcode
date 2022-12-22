@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -16,6 +17,7 @@ func main() {
 
 	fileName := strings.TrimSpace(os.Args[1])
 	data := part1.ParseInput(fileName)
+	fmt.Println(data[:10])
 
 	//
 	// process
@@ -27,5 +29,17 @@ func main() {
 	// Report
 	//
 
-	fmt.Println(out)
+	zero := part1.FindZero(out)
+	fmt.Println(out, zero)
+	if zero < 0 {
+		log.Fatal("could not find zero in output.")
+	}
+	score := 0
+	for _, i := range []int{1000, 2000, 3000} {
+		index := (zero + i) % len(out)
+		fmt.Println(zero, zero+i, len(out), index, out[index])
+		score += out[index]
+	}
+	fmt.Println(score)
+
 }

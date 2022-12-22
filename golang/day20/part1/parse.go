@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func ParseInput(fileName string) (data []Entry) {
+func ParseInput(fileName string) (data []int) {
 	// Open File
 	fin, err := os.Open(fileName)
 	if err != nil {
@@ -17,8 +17,7 @@ func ParseInput(fileName string) (data []Entry) {
 	defer fin.Close()
 
 	// Scan to read line by line
-	i := 0
-	data = make([]Entry, 0)
+	data = make([]int, 0)
 	scanner := bufio.NewScanner(fin)
 	for scanner.Scan() {
 		// Extract
@@ -29,19 +28,8 @@ func ParseInput(fileName string) (data []Entry) {
 			log.Fatal(err)
 		}
 		// Load
-		entry := Entry{
-			value:    value,
-			position: i,
-		}
-		if i > 0 {
-			entry.front = &data[i-1]
-			data[i-1].back = &entry
-		}
-		data = append(data, entry)
-		i++
+		data = append(data, value)
 	}
-	data[0].front = &data[i-1]
-	data[i-1].back = &data[0]
 
 	return
 }
