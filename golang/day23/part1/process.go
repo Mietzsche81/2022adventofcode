@@ -1,7 +1,5 @@
 package part1
 
-import "fmt"
-
 var directions = map[string][2]int{
 	"N":  {-1, 0},
 	"NE": {-1, 1},
@@ -35,17 +33,10 @@ func Process(data [][2]int, iterations int) [][2]int {
 	copy(state, data)
 
 	for i := 0; i < iterations; i++ {
-		fmt.Printf("ITERATION %d\n", i)
-		fmt.Println(rules)
-		Print(state)
-		fmt.Printf("--------------\n")
 		next := Propose(state)
 		state = Negotiate(state, next)
 		CycleDirections()
 	}
-	fmt.Printf("FINAL\n")
-	Print(state)
-	fmt.Printf("--------------\n")
 
 	return state
 }
@@ -55,16 +46,13 @@ func Propose(state [][2]int) [][2]int {
 	copy(proposed, state)
 
 	for i, elf := range proposed {
-		fmt.Printf("QUERY: %d %d\n", elf[0], elf[1])
 		for _, move := range rules {
 			if ValidMove(state, elf, move) {
 				for axis := range elf {
 					proposed[i][axis] += directions[move][axis]
 				}
-				fmt.Printf("Propose move %s to %d %d\n", move, proposed[i][0], proposed[i][1])
 				break
 			}
-			fmt.Printf("Can't move %s\n", move)
 		}
 	}
 
@@ -109,11 +97,6 @@ func Negotiate(current [][2]int, proposed [][2]int) [][2]int {
 				// Don't check cell against itself
 				continue
 			}
-			fmt.Printf("@[%d %d] Negotiate [%d %d] v [%d %d] ",
-				current[i][0], current[i][1],
-				query[0], query[1],
-				other[0], other[1],
-			)
 			same := true
 			for axis := range query {
 				if query[axis] != other[axis] {
@@ -132,13 +115,11 @@ func Negotiate(current [][2]int, proposed [][2]int) [][2]int {
 			for axis := range query {
 				final[i][axis] = current[i][axis]
 			}
-			fmt.Printf("CONFLICT, stay at [%d %d]\n", final[i][0], final[i][1])
 		} else {
 			// If no other would occupy the same cell, take it
 			for axis := range query {
 				final[i][axis] = proposed[i][axis]
 			}
-			fmt.Printf(" .  FREE, move to [%d %d]\n", final[i][0], final[i][1])
 		}
 	}
 	return final
@@ -160,6 +141,5 @@ func Score(state [][2]int) int {
 			jmax = elf[1]
 		}
 	}
-	fmt.Println(imax-imin, jmax-jmin, size)
 	return (imax-imin+1)*(jmax-jmin+1) - size
 }
