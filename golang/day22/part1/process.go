@@ -1,20 +1,13 @@
 package part1
 
 import (
-	"fmt"
 	"strings"
 )
 
 func Process(board []string, steps []Instruction) [3]int {
 	state := Initialize(board)
-	Print(board, state)
-	fmt.Println("----------------------")
 	for _, step := range steps {
 		state = step.apply(board, state)
-		// Print(board, state)
-		fmt.Println("----------------------")
-		//scanner := bufio.NewScanner(os.Stdin)
-		//scanner.Scan()
 	}
 
 	return state

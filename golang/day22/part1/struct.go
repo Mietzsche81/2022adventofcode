@@ -1,7 +1,5 @@
 package part1
 
-import "fmt"
-
 type Instruction struct {
 	distance int
 	turn     string
@@ -20,8 +18,6 @@ func (step Instruction) apply(board []string, in [3]int) [3]int {
 		in[1],
 		in[2],
 	}
-	fmt.Println(PrintState(out))
-	fmt.Println(step, out[2], ":", directions[out[2]])
 	// advance
 	for i := 0; i < step.distance; i++ {
 		next := Advance(board, out)
@@ -29,11 +25,8 @@ func (step Instruction) apply(board []string, in [3]int) [3]int {
 			for board[next[0]][next[1]] == ' ' {
 				next = Advance(board, next)
 			}
-			fmt.Println("Attempt teleport...")
 		}
-		fmt.Println(PrintState(next))
 		if board[next[0]][next[1]] == '#' {
-			fmt.Println("WALL!")
 			break
 		}
 		out[0] = next[0]
@@ -51,8 +44,6 @@ func (step Instruction) apply(board []string, in [3]int) [3]int {
 		out[2] = len(directions) - 1
 	}
 
-	fmt.Println(PrintState(out))
-	fmt.Printf("out - in = [%d %d]\n", out[0]-in[0], out[1]-in[1])
 	return out
 }
 
