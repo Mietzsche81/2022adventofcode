@@ -50,7 +50,6 @@ func ParseInput(fileName string) (board Board, steps []Instruction) {
 	// Cube folding
 	board.createMetaboard(data)
 	board.findNeighbors()
-	board.findOrientation()
 
 	// Scan instructions
 	scanner.Scan()

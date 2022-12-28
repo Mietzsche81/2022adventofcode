@@ -37,6 +37,15 @@ var directions = [][2]int{
 	{-1, 0},
 }
 
+var locationNeighbors = map[int][4]int{
+	1:  {2, -3, -2, 3},
+	-1: {-2, -3, 2, 3},
+	2:  {-1, -3, 1, 3},
+	-2: {1, -3, -1, 3},
+	3:  {2, 1, -2, -1},
+	-3: {2, -1, -2, 1},
+}
+
 func (in State) Apply(step Instruction) State {
 	// initialize
 	out := in.Copy()
