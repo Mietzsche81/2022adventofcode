@@ -17,6 +17,8 @@ func Process(board Board, steps []Instruction) State {
 
 func (b *Board) Initialize() State {
 	s := State{
+		x:    0,
+		y:    0,
 		z:    0,
 		Face: &b.Face[0],
 	}
@@ -25,13 +27,16 @@ func (b *Board) Initialize() State {
 }
 
 func (b *Board) Score(s State) int {
-	iFace := 0
-	for i := range b.Face {
-		if &(b.Face[i]) == s.Face {
-			iFace = i
-			break
+	x, y, z := s.x, s.y, s.z
+	for i := range b.Meta {
+		for j := range b.Meta[i] {
+			if b.Meta[i][j] == s.Face.Id {
+				x, y = 50*i, 50*j
+				break
+			}
 		}
 	}
+
 	var topleft [2]int
 	for i := range b.Meta {
 		for j := range b.Meta[i] {

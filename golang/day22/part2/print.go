@@ -17,7 +17,7 @@ func (board *Board) PrintOrientation() {
 }
 
 func (s State) Print() string {
-	return fmt.Sprintf("%v [%d %d %s]\n",
-		s.Face, s.x, s.y, EncodeDirection(s.z),
+	return fmt.Sprintf("%d:[%d %d %s]",
+		s.Face.Id, s.x, s.y, EncodeDirection(s.z),
 	)
 }
