@@ -2,7 +2,6 @@ package main
 
 import (
 	"day22/part2"
-	"fmt"
 	"os"
 	"strings"
 )
@@ -14,18 +13,20 @@ func main() {
 	//
 
 	fileName := strings.TrimSpace(os.Args[1])
-	board, steps := part2.ParseInput(fileName)
+	// board, steps := part2.ParseInput(fileName)
+	board, _ := part2.ParseInput(fileName)
+	board.PrintOrientation()
 
 	//
 	// process
 	//
 
-	final := part2.Process(board, steps)
+	// final := part2.Process(board, steps)
 
 	//
 	// Report
 	//
 
-	score := board.Score(final)
-	fmt.Println(score)
+	//score := board.Score(final)
+	// fmt.Println(score)
 }

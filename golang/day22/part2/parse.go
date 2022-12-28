@@ -2,7 +2,6 @@ package part2
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"regexp"
@@ -48,27 +47,10 @@ func ParseInput(fileName string) (board Board, steps []Instruction) {
 		}
 	}
 
-	// Create metaboard for cube folding
-	fmt.Println(len(data))
-	board.meta = make([][]int, len(data)/50)
-	id := 0
-	for i := range board.meta {
-		board.meta[i] = make([]int, len(data[i])/50)
-		for j := range board.meta[i] {
-			if data[50*i][50*j] != ' ' {
-				board.meta[i][j] = id
-				for x := 0; x < 50; x++ {
-					board.face[id].value[x] = data[i+x][j : j+50]
-				}
-				id++
-			} else {
-				board.meta[i][j] = -1
-			}
-		}
-		fmt.Println(board.meta[i])
-	}
-
-	// Use metaboard to create edges
+	// Cube folding
+	board.createMetaboard(data)
+	board.findNeighbors()
+	board.findOrientation()
 
 	// Scan instructions
 	scanner.Scan()
@@ -86,19 +68,4 @@ func ParseInput(fileName string) (board Board, steps []Instruction) {
 	}
 
 	return
-}
-
-func EncodeDirection(dir int) string {
-	switch dir {
-	case 0:
-		return ">"
-	case 1:
-		return "v"
-	case 2:
-		return "<"
-	case 3:
-		return "^"
-	}
-	log.Fatal(fmt.Errorf("unrecognized direction %d", dir))
-	return "?"
 }

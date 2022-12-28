@@ -1,32 +1,33 @@
 package part2
 
-import "fmt"
-
 type Instruction struct {
 	distance int
 	turn     string
 }
 
 type Board struct {
-	face [6]Face
-	meta [][]int
+	Face [6]Face
+	Meta [][]int
 }
 
 type Face struct {
-	value [50]string
-	edge  [4]Edge
+	Id          int
+	value       [50]string
+	Edge        [4]Edge
+	Location    int
+	Orientation int
 }
 
 type State struct {
-	face *Face
+	Face *Face
 	x    int
 	y    int
 	z    int
 }
 
 type Edge struct {
-	newface *Face
-	newz    int
+	Newface *Face
+	Newedge int
 }
 
 var directions = [][2]int{
@@ -43,12 +44,12 @@ func (in State) Apply(step Instruction) State {
 	// advance
 	for i := 0; i < step.distance; i++ {
 		next := out.Advance()
-		if next.face.value[next.x][next.y] == ' ' {
-			for next.face.value[next.x][next.y] == ' ' {
+		if next.Face.value[next.x][next.y] == ' ' {
+			for next.Face.value[next.x][next.y] == ' ' {
 				next = next.Advance()
 			}
 		}
-		if next.face.value[next.x][next.y] == '#' {
+		if next.Face.value[next.x][next.y] == '#' {
 			break
 		}
 		out = next.Copy()
@@ -63,22 +64,26 @@ func (in State) Apply(step Instruction) State {
 
 func (in State) Advance() State {
 	next := State{
-		face: in.face,
+		Face: in.Face,
 		x:    in.x,
 		y:    in.y,
 		z:    in.z,
 	}
 	next.x += directions[next.z][0]
-	if next.x >= len(next.face.value) {
+	if next.x >= len(next.Face.value) {
 		// TODO transition right
+		return next
 	} else if next.x < 0 {
 		// TODO transition left
+		return next
 	}
 	next.y += directions[next.z][1]
-	if next.y >= len(next.face.value[next.x]) {
+	if next.y >= len(next.Face.value[next.x]) {
 		// TODO transition down
+		return next
 	} else if next.y < 0 {
 		// TODO transition up
+		return next
 	}
 
 	return next
@@ -99,15 +104,9 @@ func (s *State) Turn(dir string) {
 
 func (in *State) Copy() State {
 	return State{
-		face: in.face,
+		Face: in.Face,
 		x:    in.x,
 		y:    in.y,
 		z:    in.z,
 	}
-}
-
-func (s State) Print() {
-	fmt.Sprintf("%v [%d %d %s]\n",
-		s.face, s.x, s.y, EncodeDirection(s.z),
-	)
 }
