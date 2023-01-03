@@ -18,8 +18,12 @@ fn main() {
 }
 
 fn main1(puzzle_input: &String) -> () {
-    board::Board::parse_file(puzzle_input);
-    println!("Hello 1!");
+    let b = board::Board::parse_file(puzzle_input);
+    let y = 2000000;
+    println!(
+        "In row y={y}, there are {} positions where a beacon cannot be present.",
+        b.count_impossible_in_row(y)
+    )
 }
 
 fn main2(_puzzle_input: &String) -> () {
