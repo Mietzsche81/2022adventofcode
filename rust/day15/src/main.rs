@@ -26,6 +26,18 @@ fn main1(puzzle_input: &String) -> () {
     )
 }
 
-fn main2(_puzzle_input: &String) -> () {
-    println!("Hello 2!");
+fn main2(puzzle_input: &String) -> () {
+    let mut b = board::Board::parse_file(puzzle_input);
+    b.x_bound = (0, 4000000);
+    b.y_bound = (0, 4000000);
+
+    let p = b
+        .find_only_empty()
+        .expect("Failed to locate distress beacon!");
+    println!(
+        "Open point @ ({}, {}) = {}",
+        p.x,
+        p.y,
+        (p.x as u64) * 4000000 + (p.y as u64)
+    );
 }

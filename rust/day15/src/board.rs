@@ -6,8 +6,8 @@ use std::{collections::HashSet, fs::File};
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct Point {
-    x: i32,
-    y: i32,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl Sub<Point> for Point {
@@ -38,7 +38,7 @@ impl Measurement {
         Measurement {
             sensor: sensor,
             beacon: beacon,
-            distance: (beacon - sensor).abs(),
+            distance: beacon - sensor,
         }
     }
 
@@ -158,6 +158,57 @@ impl Board {
             }
         }
         return sum;
+    }
+
+    /// With a proper board/bounds, returns the only unscanned point
+    ///
+    /// The problem prescribes that there is only one valid point in board's
+    /// bounds. Therefore, the point must be at some measurement's distance+1.
+    /// Check each point around the board of each measurement's range, and stop when
+    /// no other measurement interects (check via point < measurement.distance)
+    pub fn find_only_empty(&self) -> Result<Point, ()> {
+        let measurements = self.sensors.values().collect::<Vec<&Measurement>>();
+        for m in &measurements {
+            let r0 = [
+                (m.sensor.x, m.sensor.y - m.distance - 1),
+                (m.sensor.x + m.distance + 1, m.sensor.y),
+                (m.sensor.x, m.sensor.y + m.distance + 1),
+                (m.sensor.x - m.distance - 1, m.sensor.y),
+            ];
+            let dr = [(1, 1), (-1, 1), (-1, -1), (1, -1)];
+            for i in 0..r0.len() {
+                let mut p = Point {
+                    x: r0[i].0,
+                    y: r0[i].1,
+                };
+                if p.x < self.x_bound.0
+                    || p.x > self.x_bound.1
+                    || p.y < self.y_bound.0
+                    || p.y > self.y_bound.1
+                {
+                    continue;
+                }
+                for _ in 0..=m.distance {
+                    // Check
+                    let mut valid = true;
+                    for n in &measurements {
+                        if (p - n.sensor) <= n.distance {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    if valid {
+                        // We did it!
+                        return Ok(p);
+                    } else {
+                        // Iterate
+                        p.x += dr[i].0;
+                        p.y += dr[i].1;
+                    }
+                }
+            }
+        }
+        return Err(());
     }
 }
 
