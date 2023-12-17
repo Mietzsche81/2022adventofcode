@@ -1,6 +1,6 @@
-from pprint import pprint
-from queue import PriorityQueue, Empty as EmptyException
 import functools
+from itertools import pairwise
+from queue import PriorityQueue, Empty as EmptyException
 
 Position = tuple[int, int]
 Velocity = tuple[int, int]
@@ -11,7 +11,6 @@ MapState = list[BlizzardState]
 MapCache = dict[Time, MapState]
 
 ObjectiveState = tuple[Time, Position]
-ObjectiveCache = set[ObjectiveState]
 
 
 class DepthFirstQueue(PriorityQueue):
@@ -20,21 +19,17 @@ class DepthFirstQueue(PriorityQueue):
         self.fastest_path: Time = None
         super().__init__()
 
+    @functools.cache
     def put(self, s: ObjectiveState):
-        if s[1] == self.target:
-            if self.fastest_path is None or s[0] < self.fastest_path:
-                self.fastest_path = s[0]
-                self.purge_invalid()
-        elif (
-            self.fastest_path is None
-            or (s[0] + self.distance_to_target(s[1])) < self.fastest_path
-        ):
-            return super().put(
+        if self.fastest_path:
+            pass
+        elif s[1] == self.target:
+            self.fastest_path = s[0]
+            self.purge_invalid()
+        else:
+            super().put(
                 (
-                    (
-                        self.distance_to_target(s[1]),
-                        s[0],
-                    ),  # Priority (closest, shortest time)
+                    s[0] + self.distance_to_target(s[1]),  # Best score possible
                     s,  # State (t,(x,y))
                 )
             )
@@ -97,7 +92,6 @@ class StateIterator:
                 if (v := self.decode(char))
             ]
         }
-        self.objective_cache: ObjectiveCache = {(0, self.start)}
         self.dfs = DepthFirstQueue(self.target)
         self.dfs.put((0, self.start))
 
@@ -147,45 +141,34 @@ class StateIterator:
                 ((0 < x < (self.X - 1)) and (0 < y < (self.Y - 1)))
                 or (x, y) in (self.start, self.target)
             )
-            and (t, (x, y)) not in self.objective_cache
         ]
 
     def solve(self):
         while not self.dfs.empty():
-            # Iterate objective state forward
             t, x = self.dfs.get()
-            possible = self.iterate_objective((t, x))
-            if not possible:
-                continue
 
-            # Solve for/look up environment state
+            # Solve for/look up next environment state
             blizzards = [x for x, _ in self.iterate_map(t)]
 
-            for t, x in possible:
-                if x not in blizzards:
-                    self.dfs.put((t, x))
-                    self.objective_cache.add((t, x))
+            # Iterate objective state forward
+            states = [
+                (
+                    u,
+                    y,
+                )
+                for u, y in self.iterate_objective((t, x))
+                if y not in blizzards
+            ]
+            for s in states:
+                self.dfs.put(s)
 
         return self.dfs.fastest_path
 
-    def solve_backtrack(self):
-        # Go to objective
-        self.dfs = DepthFirstQueue(self.target)
-        self.dfs.put((0, self.start))
-        self.objective_cache: ObjectiveCache = {(0, self.start)}
-        t1 = self.solve()
-        print(t1)
-        # Backtrack from objective to start
-        self.dfs = DepthFirstQueue(self.start)
-        self.dfs.put((t1, self.target))
-        self.objective_cache: ObjectiveCache = {(t1, self.target)}
-        t2 = self.solve()
-        print(t2)
-        # Forward again
-        self.dfs = DepthFirstQueue(self.target)
-        self.dfs.put((t2, self.start))
-        self.objective_cache: ObjectiveCache = {(t2, self.start)}
-        t3 = self.solve()
-        print(t3)
+    def solve_sequence(self, targets: list[Position]):
+        t = 0
+        for start, finish in pairwise(targets):
+            self.dfs = DepthFirstQueue(finish)
+            self.dfs.put((t, start))
+            t = self.solve()
 
-        return t3
+        return t
