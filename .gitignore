@@ -1,2 +1,6 @@
 puzzle.input
 .DS_Store
+
+__pycache__/
+*.__pycache__
+*.input
